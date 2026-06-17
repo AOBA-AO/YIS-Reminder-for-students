@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>YISリマインダー</title>
+
+<style>
+
+:root{
+--main:#4f7cff;
+--bg:#eef3ff;
+--test:#ff5252;
+--task:#42a5f5;
+}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:"Yu Gothic","Hiragino Sans",sans-serif;
+}
+
+body{
+background:var(--bg);
+display:flex;
+justify-content:center;
+padding:20px;
+}
+
+.app{
+width:375px;
+height:812px;
+background:#fff;
+border-radius:25px;
+overflow:hidden;
+box-shadow:0 6px 20px rgba(0,0,0,.15);
+position:relative;
+}
+
+header{
+background:var(--main);
+color:white;
+padding:18px;
+text-align:center;
+font-size:22px;
+font-weight:bold;
+}
+
+.screen{
+display:none;
+height:calc(100% - 140px);
+overflow-y:auto;
+padding:15px;
+}
+
+.screen.active{
+display:block;
+}
+
+/* カレンダー */
+
+.calendar-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
+
+.calendar-header button{
+width:40px;
+height:40px;
+border:none;
+border-radius:50%;
+background:var(--main);
+color:white;
+cursor:pointer;
+}
+
+#monthTitle{
+font-size:22px;
+font-weight:bold;
+}
+
+.calendar-grid{
+display:grid;
+grid-template-columns:repeat(7,1fr);
+gap:5px;
+}
+
+.day-name{
+text-align:center;
+padding:8px;
+background:#dce6ff;
+border-radius:8px;
+font-weight:bold;
+}
+
+.day{
+background:#f8faff;
+min-height:60px;
+border-radius:10px;
+text-align:center;
+padding-top:8px;
+position:relative;
+cursor:pointer;
+}
+
+.today{
+background:var(--main);
+color:white;
+font-weight:bold;
+}
+
+.dot-test,
+.dot-task{
+width:8px;
+height:8px;
+border-radius:50%;
+position:absolute;
+left:50%;
+transform:translateX(-50%);
+}
+
+.dot-test{
+background:var(--test);
+bottom:6px;
+}
+
+.dot-task{
+background:var(--task);
+bottom:18px;
+}
+
+.event-detail{
+margin-top:20px;
+padding:15px;
+background:#f8faff;
+border-left:5px solid var(--main);
+border-radius:12px;
+min-height:120px;
+}
+
+.event-item{
+padding:8px 0;
+border-bottom:1px solid #ddd;
+}
+
+/* 一覧 */
+
+.task-card{
+background:#f8faff;
+padding:15px;
+border-radius:15px;
+margin-bottom:12px;
+border-left:5px solid var(--main);
+}
+
+.badge{
+display:inline-block;
+padding:4px 10px;
+border-radius:10px;
+color:white;
+font-size:12px;
+margin:6px 0;
+}
+
+.test{
+background:var(--test);
+}
+
+.task{
+background:var(--task);
+}
+
+.delete-btn{
+margin-top:10px;
+padding:8px 12px;
+border:none;
+background:var(--test);
+color:white;
+border-radius:8px;
+cursor:pointer;
+}
+
+/* フォーム */
+
+.form-group{
+margin-bottom:18px;
+}
+
+label{
+display:block;
+margin-bottom:6px;
+font-weight:bold;
+}
+
+input,
+select{
+width:100%;
+padding:12px;
+border:1px solid #ccc;
+border-radius:10px;
+}
+
+.save-btn{
+width:100%;
+padding:15px;
+background:var(--main);
+color:white;
+border:none;
+border-radius:12px;
+font-size:16px;
+cursor:pointer;
+}
+
+/* ナビ */
+
+nav{
+position:absolute;
+bottom:0;
+width:100%;
+height:70px;
+display:flex;
+background:white;
+border-top:1px solid #ddd;
+}
+
+nav button{
+flex:1;
+border:none;
+background:none;
+cursor:pointer;
+}
+
+nav button.active{
+color:var(--main);
+font-weight:bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>YISリマインダー</header>
+
+<!-- ホーム -->
+
+<section class="screen active" id="home">
+
+<div class="calendar-header">
+<button onclick="changeMonth(-1)">◀</button>
+<div id="monthTitle"></div>
+<button onclick="changeMonth(1)">▶</button>
+</div>
+
+<div class="calendar-grid" id="calendar">
+<div class="day-name">日</div>
+<div class="day-name">月</div>
+<div class="day-name">火</div>
+<div class="day-name">水</div>
+<div class="day-name">木</div>
+<div class="day-name">金</div>
+<div class="day-name">土</div>
+</div>
+
+<div id="eventDetail" class="event-detail">
+日付をタップすると予定が表示されます
+</div>
+
+</section>
+
+<!-- 一覧 -->
+
+<section class="screen" id="list">
+<div id="scheduleList"></div>
+</section>
+
+<!-- 登録 -->
+
+<section class="screen" id="register">
+
+<div class="form-group">
+<label>タイトル</label>
+<input id="title" type="text" placeholder="数学テスト">
+</div>
+
+<div class="form-group">
+<label>種類</label>
+<select id="type">
+<option>テスト</option>
+<option>課題</option>
+</select>
+</div>
+
+<div class="form-group">
+<label>締切日</label>
+<input id="date" type="date">
+</div>
+
+<div class="form-group">
+<label>通知</label>
+<select id="remind">
+<option>当日</option>
+<option>1日前</option>
+<option>3日前</option>
+<option>1週間前</option>
+</select>
+</div>
+
+<button class="save-btn" onclick="saveSchedule()">
+登録する
+</button>
+
+</section>
+
+<nav>
+<button class="active" onclick="showScreen('home',this)">ホーム</button>
+<button onclick="showScreen('list',this)">一覧</button>
+<button onclick="showScreen('register',this)">登録</button>
+</nav>
+
+</div>
+
+<script>
+
+let schedules =
+JSON.parse(localStorage.getItem("schedules")) || [];
+
+let currentDate = new Date();
+
+/* 画面切替 */
+
+function showScreen(id,btn){
+
+document.querySelectorAll(".screen")
+.forEach(s=>s.classList.remove("active"));
+
+document.getElementById(id)
+.classList.add("active");
+
+document.querySelectorAll("nav button")
+.forEach(b=>b.classList.remove("active"));
+
+btn.classList.add("active");
+
+}
+
+/* 登録 */
+
+function saveSchedule(){
+
+const title =
+document.getElementById("title").value;
+
+const type =
+document.getElementById("type").value;
+
+const date =
+document.getElementById("date").value;
+
+const remind =
+document.getElementById("remind").value;
+
+if(!title || !date){
+alert("入力してください");
+return;
+}
+
+schedules.push({
+title,
+type,
+date,
+remind
+});
+
+localStorage.setItem(
+"schedules",
+JSON.stringify(schedules)
+);
+
+renderCalendar();
+renderList();
+
+alert("登録しました");
+
+document.getElementById("title").value="";
+document.getElementById("date").value="";
+}
+
+/* 一覧 */
+
+function renderList(){
+
+const list =
+document.getElementById("scheduleList");
+
+list.innerHTML="";
+
+schedules.sort((a,b)=>
+new Date(a.date)-new Date(b.date)
+);
+
+schedules.forEach((item,index)=>{
+
+list.innerHTML += `
+<div class="task-card">
+
+<h3>${item.title}</h3>
+
+<div class="badge ${
+item.type==="テスト"
+? "test"
+: "task"
+}">
+${item.type}
+</div>
+
+<p>期限：${item.date}</p>
+<p>通知：${item.remind}</p>
+
+<button
+class="delete-btn"
+onclick="deleteSchedule(${index})">
+削除
+</button>
+
+</div>
+`;
+
+});
+
+}
+
+/* 削除 */
+
+function deleteSchedule(index){
+
+schedules.splice(index,1);
+
+localStorage.setItem(
+"schedules",
+JSON.stringify(schedules)
+);
+
+renderCalendar();
+renderList();
+
+}
+
+/* 詳細表示 */
+
+function showEventDetail(year,month,day){
+
+const detail =
+document.getElementById("eventDetail");
+
+const target =
+`${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+
+const events =
+schedules.filter(
+e=>e.date===target
+);
+
+if(events.length===0){
+
+detail.innerHTML=`
+<h3>${month+1}月${day}日</h3>
+<p>予定はありません</p>
+`;
+
+return;
+}
+
+let html=`<h3>${month+1}月${day}日</h3>`;
+
+events.forEach(e=>{
+
+html += `
+<div class="event-item">
+<strong>${e.title}</strong><br>
+${e.type}<br>
+通知：${e.remind}
+</div>
+`;
+
+});
+
+detail.innerHTML=html;
+
+}
+
+/* カレンダー */
+
+function renderCalendar(){
+
+const year =
+currentDate.getFullYear();
+
+const month =
+currentDate.getMonth();
+
+document.getElementById("monthTitle")
+.textContent =
+`${year}年${month+1}月`;
+
+const calendar =
+document.getElementById("calendar");
+
+calendar.innerHTML = `
+<div class="day-name">日</div>
+<div class="day-name">月</div>
+<div class="day-name">火</div>
+<div class="day-name">水</div>
+<div class="day-name">木</div>
+<div class="day-name">金</div>
+<div class="day-name">土</div>
+`;
+
+const firstDay =
+new Date(year,month,1).getDay();
+
+const lastDate =
+new Date(year,month+1,0).getDate();
+
+for(let i=0;i<firstDay;i++){
+
+const blank =
+document.createElement("div");
+
+blank.className="day";
+
+calendar.appendChild(blank);
+
+}
+
+for(let d=1; d<=lastDate; d++){
+
+const day =
+document.createElement("div");
+
+day.className="day";
+day.textContent=d;
+
+const today =
+new Date();
+
+if(
+year===today.getFullYear() &&
+month===today.getMonth() &&
+d===today.getDate()
+){
+day.classList.add("today");
+}
+
+day.addEventListener(
+"click",
+()=>showEventDetail(year,month,d)
+);
+
+const events =
+schedules.filter(event=>{
+
+const eventDate =
+new Date(event.date);
+
+return (
+eventDate.getFullYear()===year &&
+eventDate.getMonth()===month &&
+eventDate.getDate()===d
+);
+
+});
+
+events.forEach(event=>{
+
+const dot =
+document.createElement("div");
+
+dot.className =
+event.type==="テスト"
+? "dot-test"
+: "dot-task";
+
+day.appendChild(dot);
+
+});
+
+calendar.appendChild(day);
+
+}
+
+}
+
+function changeMonth(num){
+
+currentDate.setMonth(
+currentDate.getMonth()+num
+);
+
+renderCalendar();
+
+}
+
+renderCalendar();
+renderList();
+
+</script>
+
+</body>
+</html>
